@@ -435,18 +435,52 @@ To make these changes in `Payment`, a few more `state` need to be added. To be m
 
 ```tsx
 const Payment = ({ amount }: { amount: number }) => {
-  const [total, setTotal] = useState<number>(amount);
-  const [tip, setTip] = useState<number>(0);
   const [agreeToDonate, setAgreeToDonate] = useState<boolean>(false);
 
-  useEffect(() => {
-    setTotal(agreeToDonate ? Math.floor(amount + 1) : amount);
-    setTip(parseFloat((Math.floor(amount + 1) - amount).toPrecision(10)));
-  }, [agreeToDonate, amount])
+  const { total, tip } = useMemo(
+    () => ({
+      total: agreeToDonate ? Math.floor(amount + 1) : amount,
+      tip: parseFloat((Math.floor(amount + 1) - amount).toPrecision(10)),
+    }),
+    [amount, agreeToDonate]
+  );
 
   // rendering 
 }
 ```
+
+---
+
+They actually don't need to be a state in this case, we can use `useMemo` to memorise the value here like:
+
+```tsx
+export const useRoundUp = (amount: number) => {
+  const [agreeToDonate, setAgreeToDonate] = useState<boolean>(false);
+
+  const { total, tip } = useMemo(
+    () => ({
+      total: agreeToDonate ? Math.floor(amount + 1) : amount,
+      tip: parseFloat((Math.floor(amount + 1) - amount).toPrecision(10)),
+    }),
+    [amount, agreeToDonate]
+  );
+
+  const updateAgreeToDonate = () => {
+    setAgreeToDonate((agreeToDonate) => !agreeToDonate);
+  };
+
+  return {
+    total,
+    tip,
+    agreeToDonate,
+    updateAgreeToDonate,
+  };
+};
+```
+
+`useEffect` normally is required only for side effects (network, eventListener, or logging stuff), but in this case we only need a cache and .
+
+---
 
 The function`Math.floor` will round the number up so we can get the correct amount when the user selects `agreeToDonate`, and the difference between `rounded-up` value and the original amount will be the `tip`.
 
@@ -485,14 +519,15 @@ It sounds like a perfect usage of a custom hook again, right?
 
 ```tsx
 const useRoundUp = (amount: number) => {
-  const [total, setTotal] = useState<number>(amount);
-  const [tip, setTip] = useState<number>(0);
   const [agreeToDonate, setAgreeToDonate] = useState<boolean>(false);
 
-  useEffect(() => {
-    setTotal(agreeToDonate ? Math.floor(amount + 1) : amount);
-    setTip(parseFloat((Math.floor(amount + 1) - amount).toPrecision(2)));
-  }, [agreeToDonate, amount])
+  const { total, tip } = useMemo(
+    () => ({
+      total: agreeToDonate ? Math.floor(amount + 1) : amount,
+      tip: parseFloat((Math.floor(amount + 1) - amount).toPrecision(10)),
+    }),
+    [amount, agreeToDonate]
+  );
 
   const updateAgreeToDonate = () => {
     setAgreeToDonate((agreeToDonate) => !agreeToDonate);
@@ -611,14 +646,18 @@ And because all of the logic is now defined in the `useRoundUp` hook, I can also
 ```tsx
 const useRoundUp = (amount: number, countryCode: string) => {
   //...
-  useEffect(() => {
-    if(countryCode === 'JP') {
-      setTotal(agreeToDonate ? Math.floor(amount / 100 + 1) * 100 : amount);
-    } else {
-      setTotal(agreeToDonate ? Math.floor(amount + 1) : amount);
-    }
-    //...
-  }, [agreeToDonate, amount]);
+
+  const { total, tip } = useMemo(
+    () => ({
+      total: agreeToDonate
+        ? countryCode === "JP"
+          ? Math.floor(amount / 100 + 1) * 100
+          : Math.floor(amount + 1)
+        : amount,
+      //...
+    }),
+    [amount, agreeToDonate, countryCode]
+  );
   //...
 }
 ```
@@ -708,10 +747,13 @@ With these classes, in the `useRoundUp` hook, the code could be simplified a bit
 ```tsx
 const useRoundUp = (amount: number, strategy: PaymentStrategy) => {
   //...
-  useEffect(() => {
-    setTotal(agreeToDonate ? strategy.getRoundUpAmount(amount) : amount);
-    setTip(strategy.getTip(amount));
-  }, [agreeToDonate, amount, strategy]);
+  const { total, tip } = useMemo(
+    () => ({
+      total: agreeToDonate ? strategy.getRoundUpAmount(amount) : amount,
+      tip: strategy.getTip(amount),
+    }),
+    [strategy, amount, agreeToDonate]
+  );
   
   //...
   return {
