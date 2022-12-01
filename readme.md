@@ -127,7 +127,11 @@ export const Payment = ({ amount }: { amount: number }) => {
 };
 ```
 
-I understand that the code is a bit wild, so let me explain it to you. Firstly, there is a `useEffect` hook before the rendering block (the part that returns JSX at the lower part):
+I understand that the code is a bit wild, so let me explain it to you. The code does quite a lot of different things in one place, I think it helps if I draw some lines and highlight these different parts.
+
+![](images/payment-original-illustration.png)
+
+Firstly, there is a `useEffect` hook before the rendering block (the part that returns JSX at the lower part):
 
 ```tsx
 //...
@@ -448,39 +452,6 @@ const Payment = ({ amount }: { amount: number }) => {
   // rendering 
 }
 ```
-
----
-
-They actually don't need to be a state in this case, we can use `useMemo` to memorise the value here like:
-
-```tsx
-export const useRoundUp = (amount: number) => {
-  const [agreeToDonate, setAgreeToDonate] = useState<boolean>(false);
-
-  const { total, tip } = useMemo(
-    () => ({
-      total: agreeToDonate ? Math.floor(amount + 1) : amount,
-      tip: parseFloat((Math.floor(amount + 1) - amount).toPrecision(10)),
-    }),
-    [amount, agreeToDonate]
-  );
-
-  const updateAgreeToDonate = () => {
-    setAgreeToDonate((agreeToDonate) => !agreeToDonate);
-  };
-
-  return {
-    total,
-    tip,
-    agreeToDonate,
-    updateAgreeToDonate,
-  };
-};
-```
-
-`useEffect` normally is required only for side effects (network, eventListener, or logging stuff), but in this case we only need a cache and .
-
----
 
 The function`Math.floor` will round the number up so we can get the correct amount when the user selects `agreeToDonate`, and the difference between `rounded-up` value and the original amount will be the `tip`.
 
