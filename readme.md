@@ -1,15 +1,16 @@
 # There is no such thing as a React application.
 
-There is no such thing as a React application. There are front-end applications written in JavaScript or TypeScript that happen to use React as their view layer. More often than not, people squeeze different things into React components or hooks to make the application work, but the effort of understanding the code is relatively high, also modifying the codebase is like treading on thin ice.
+Like it or not, there is no such thing as a React application. I mean, there are front-end applications written in JavaScript or TypeScript that happen to use React as their view layer. More often than not, people squeeze different things into React components or hooks to make the application to work, but the effort of understanding the code with these *ad hoc* approach is relatively high, also modifying the codebase is risky.
 
 It's easy to overlook that React, at its core, is a library (not a framework) that helps you to build the user interface.
 
 > A JavaScript library for building user interfaces
-> 
+> -- React Homepage
 
-In this article, I would like to discuss a few patterns and techniques you can use to reshape the “React” application to a regular one, but with React as its view only. The benefit of this separation is that you will be more confident to make changes in the underlying domain logic without worrying too much about the views or vice versa. 
+In this article, I would like to discuss a few patterns and techniques you can use to reshape the “React” application to a regular one, but with React as its view only. The benefit of this separation is that you will be more confident to make changes in the underlying domain logic without worrying too much about the surfacing views or vice versa.
 
-## The first impression of React
+It may sound pretty straightforward, however, while implementing concrete features, several details need to be examined and sometimes, you may need to trade off a few other things.
+## Welcome to the real world React application
 
 Most developers were impressed by React's simplicity and the idea that a user interface is only a pure function to map data into DOM. And it is in some way if you look at the example like rendering some static data on the page in React:
 
@@ -54,23 +55,27 @@ $(function () {
 });
 ```
 
-Apart from the elegant and declarative APIs in React, the pure functions and virtual DOM stuff are also brilliant in making the code readable and performant. But developers soon hit the wall when they need to send a network request to the backend service or perform page navigation as these side effect is not so “pure” in terms of functional programming paradigm. To make the matter worse, the backend never returns the data the front-end expects. And once you have to consider these different states, either the global state or local state, things quickly get complicated, and the dark side of the user interface emerges. 
-
-Side effects apart, business logic leakage (one symptom is that it seems you always need a few `convert` or `transform` here and there.) is another big issue in front-end applications, which I’ll address soon in an example below. 
-
-React itself doesn’t care much about where to put the calculation or business logic, which is fair as it’s only a library for building user interfaces. 
+Apart from the elegant and declarative APIs in React, the pure functions and virtual DOM stuff are also brilliant in making the code readable and performant. But developers start to struggle when they need to send a network request to the backend service or perform page navigation as these side effect is making the component not so “pure”. And once you have to consider these different states, either the global state or local state, things quickly get complicated, and the dark side of the user interface emerges. 
 
 Developers have tried to fix these problems in many different ways. State management like `redux` or `mobX` was popular for a while until people realised it was way too complicated. Also, each library seems to have its own paradigm, terms and patterns, and there are always too many new concepts more than you need to build a “simple” front-end application. 
 
-Another important thing I’d like to emphasise here is that front-end is more than the user interface. To make the application work, you will need a router, storage, cache, network requests, 3rd-party integrations, login, security, logging, performance tuning etc. The list can keep on and on. 
+To make the matter worse, the backend never returns the data the front-end expects, so there will be many logic to convert data from one shape to another, do a few calculation, etc. I’ll address soon in an example below. 
 
-Having that said, trying to put everything into React components or hooks will either not work, or it works only in a tiny application but can’t scale. 
+### Frontend applications have many parts
 
-And the solution is to rethink the front-end application structure, figure out where the complexity comes from, and then try to apply design principles and patterns we learnt in traditional application development.
+React itself doesn’t care much about where to put the calculation or business logic, which is fair as it’s only a library for building user interfaces. And beyond that view layer, a frontend application has other parts as well. To make the application work, you will need a router, local storage, cache in different levles, network requests, 3rd-party integrations, 3rd-party login, security, logging, performance tuning etc.
 
-## Excerpt feature of an online ordering application
+With all these context, **trying to squeeze everything into React components or hooks** obviouly not a good idea. And in the real world, that approach will either not work, or it works only in a tiny application but can’t scale. 
 
-In this article, I’ll use an online ordering application feature to demonstrate all the patterns and design principles. I’m using the oversimplified payment section as a starting point. In the online ordering application, a customer can pick up some products and add them to the order, and then they will need to select one of the payment methods to continue. 
+And the solution is to rethink the front-end application structure, figure out where the complexity comes from, and then try to apply design principles and patterns we learnt in traditional application development. 
+
+For example, to handle these issues (they are not new problems, by the way), the Layered Architecture has been used, and it works well in most cases. Also, the MVC, MVP and other patterns for solving complicated software problems are widely used in other fields of software, and there is no reason we should not use them in frontend world.
+
+So in the following sections, I'll walk you through a feature I excerpted from a real project to demonstrate all the patterns and design principles I think useful for big frontend applications. 
+
+## Introduction of the Payment feature
+
+I’m using the oversimplified payment section as a starting point. In the online ordering application, a customer can pick up some products and add them to the order, and then they will need to select one of the payment methods to continue. 
 
 ![payment methods](images/payment-methods.png)
 
@@ -130,6 +135,8 @@ export const Payment = ({ amount }: { amount: number }) => {
 I understand that the code is a bit wild, so let me explain it to you. The code does quite a lot of different things in one place, I think it helps if I draw some lines and highlight these different parts.
 
 ![](images/payment-original-illustration.png)
+
+### Break it down
 
 Firstly, there is a `useEffect` hook before the rendering block (the part that returns JSX at the lower part):
 
@@ -192,13 +199,15 @@ return (
 
 Here, we’re iterating through the state `paymentMethods` and mapping each element into a JSX node, which will, in turn, be rendered as a radio button inside a `label`. And after that, there will be a button beneath to show the total amount of an order.
 
-### The problem with this initial version
+### The problem with the initial implementation
 
 The code snippet above works well, and it’s also passing all my unit tests. But I’m sure you have spotted quite a few code smells already.
 
 The first issue I would like to address is the component is too **busy**. By that, I mean `Payment` deals with different things and makes the code difficult to read as you have to switch context in your head as you read. There are a few lines for a network request, a few others for converting data to another shape, and then the rendering logic itself.
 
 It’s a good practice to split view and non-view code into separate places. The reason is that, in general, views are changing more frequently than this non-view logic. Also, as they deal with different aspects of the application, separating them allows you to focus on a particular self-contained module that is much more manageable when implementing new features.
+
+### The split of view and non-view code 
 
 In React, we can use a custom hook to maintain `state` of a component while remaining the component itself more or less `stateless`. We can use `Extract Function` to create a function `usePaymentMethods` (the prefix `use` is only a convention in React to indicate the function is a hook and handling some states in it):
 
@@ -265,6 +274,8 @@ export const Payment = ({ amount }: { amount: number }) => {
 
 That helps relieve the pain in the `Payment` component. However, if you look at the block for iterating through `paymentMethods`, it seems a concept is missing here. In other words, this block deserves its own component. We want each component to focus on, ideally, only one thing. 
 
+### Split the view by extracting sub component
+
 Also, if we can make a component a pure function, meaning given any input, the output is certain. That would help us a lot in writing tests, understanding the code and even reusing the component elsewhere. After all, the smaller a component, the more likely it will be reused.
 
 We can use `Extract Function` again (maybe we should call it `Extract Component`, but in React, a component is a function anyways).
@@ -311,7 +322,7 @@ const Payment = ({ amount }: { amount: number }) => {
 
 Note that the `PaymentMethods` is a pure function (a pure component) that doesn’t have any state. It’s pretty much like a string formatting function or so.
 
-## Data modelling
+### Data modelling to encapsulate logic
 
 So far, the changes I have made are all about splitting view and non-view code into different places. It works well. The hook handles data fetching and reshaping. Both `Payment` and `PaymentMethods` are relatively small and easy to understand. 
 
@@ -479,6 +490,8 @@ return (
 
 With these new changes, our code started handling more than one thing again. It’s essential always to keep alert about the mixing of view and non-view code. If you find any unnecessary mixing, you should look for ways to split them. 
 
+### Extract a hook to the rescue
+
 Here it seems we need an object to calculate the tip and amount, and whenever a user changes their mind, the object should return the updated amount and tip.
 
 So it sounds like we need an object that:
@@ -602,7 +615,7 @@ And at this point, our code structure became something like the diagram below. N
 
 ![refactoring](images/refactoring-2.png)
 
-### Some more changes about round-up logic
+### More changes about round-up logic
 
 The round-up looks good so far, and as the business expands to other countries, it comes with new requirements. The same logic doesn’t work in Japan market as 0.1 Yen is too small as a donation, and it needs to round up to the nearest hundred for the Japanese currency. And for Denmark, it needs to round up to the nearest tens.
 
@@ -655,6 +668,8 @@ One last thing we also need to change is the currency sign on the button:
 <button>{countryCode === 'JP' ? '¥' : '$'}{total}</button>
 ```
 
+### The shotgun surgery problem
+
 This scenario is the famous “shotgun surgery” anti-pattern we see in many places (not particularly in React applications). This essentially says that we'll have to touch several modules whenever we need to modify the code for either a bug fixing or adding a new feature. And indeed, it’s easier to make mistakes with these many changes, especially when your tests are insufficient. 
 
 ![shotgun surgery](images/shotgun-surgery.png)
@@ -675,7 +690,7 @@ const getDollarSign = (countryCode: CountryCode) => currencySignMap[countryCode]
 
 One possible solution for the problem of having branches scatted in different places is to use polymorphism to replace these switch cases or table look-up logic. For this particular case, we can also apply the `Strategy Pattern`.
 
-### Strategy Pattern
+### Polymorphism to the rescue: Strategy Pattern
 
 The first thing we can do is examine all the branches and see what they are actually testing. For example, different countries have different currency signs, so `getCurrencySign` can be extracted into a public interface. Also, we noticed that other countries might have different round-up algorithms. Thus, an `algorithm` can be part of the interface as well.
 
@@ -786,7 +801,7 @@ So I hope you have noticed that we’re trying to move non-view-related code dir
 
 For example, if you would build a new interface, maybe with `vue` or even a command line tool. How much code can you reuse with your current implementation?
 
-### Network request client
+### Push the design a bit further: extract a network client
 
 If I keep this “split” mindset (for both view and non-view logic, or more broadly split code into its own object), the next bit is that I could do something to relieve the `usePaymentMethods` hook. 
 
@@ -869,7 +884,7 @@ And our class diagram is changed into something like the one below. We have most
 
 ![refactoring](images/refactoring-3.png)
 
-### Rewrite the UI?
+## The ultimate goal: rewrite the User Interface
 
 One of the benefits of the separation we’ve been talking about above is that, if we have to (even very unlikely in most projects), we can replace the view without breaking the underlying models and logic. 
 
@@ -953,5 +968,7 @@ Compared to React, the code above is a bit cumbersome. But the idea here is that
 
 ![jquery ui](images/jquery-ui.png)
 
-## Summary
+## Conclusion
+
+
 
