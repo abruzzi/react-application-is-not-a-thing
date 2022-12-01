@@ -69,6 +69,10 @@ With all these context, **trying to squeeze everything into React components or 
 
 And the solution is to rethink the front-end application structure, figure out where the complexity comes from, and then try to apply design principles and patterns we learnt in traditional application development. 
 
+In [this article](https://martinfowler.com/bliki/PresentationDomainDataLayering.html), Martin Fowler had a great summary of the idea of having the view-model-data layering. And the idea here is that even in frontend application itself, when it grows to a certain level of complicatiy, we can borrow the principle as well.
+
+> On the whole I've found this to be an effective form of modularization for many applications and one that I regularly use and encourage. It's biggest advantage (for me) is that it allows me to reduce the scope of my attention by allowing me to think about the three topics relatively independently. 
+
 For example, to handle these issues (they are not new problems, by the way), the Layered Architecture has been used, and it works well in most cases. Also, the MVC, MVP and other patterns for solving complicated software problems are widely used in other fields of software, and there is no reason we should not use them in frontend world.
 
 So in the following sections, I'll walk you through a feature I excerpted from a real project to demonstrate all the patterns and design principles I think useful for big frontend applications. 
