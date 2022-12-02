@@ -79,13 +79,13 @@ So in the following sections, I'll walk you through a feature I excerpted from a
 
 ## Introduction of the Payment feature
 
-I’m using the oversimplified payment section as a starting point. In the online ordering application, a customer can pick up some products and add them to the order, and then they will need to select one of the payment methods to continue. 
+I’m using an oversimplified online ordering application as a starting point. In this application, a customer can pick up some products and add them to the order, and then they will need to select one of the payment methods to continue. 
 
 ![payment methods](images/payment-methods.png)
 
-These payment method options are configured on the server side, and customers from different countries may see other options. For example, Apple Pay may only be popular in some countries. The radio buttons are data-driven - whatever is fetched from the backend service will be surfaced. The only exception is that if none configured payment methods are returned, we don’t show anything and treat it as `pay in cash` by default.
+These payment method options are configured on the server side, and customers from different countries may see other options. For example, Apple Pay may only be popular in some countries. The radio buttons are data-driven - whatever is fetched from the backend service will be surfaced. The only exception is that when no configured payment methods are returned, we don’t show anything and treat it as `pay in cash` by default.
 
-For simplicity, I’ll skip the actual payment process and focus on the `Payment` component. Let’s say after reading the React hello world doc and a couple of `stackoverflow` searches. You came up with some code like this initially:
+For simplicity, I’ll skip the actual payment process and focus on the `Payment` component. Let’s say that after reading the React hello world doc and a couple of `stackoverflow` searches, you came up with some code like this:
 
 ```tsx
 export const Payment = ({ amount }: { amount: number }) => {
@@ -136,7 +136,7 @@ export const Payment = ({ amount }: { amount: number }) => {
 };
 ```
 
-I understand that the code is a bit wild, so let me explain it to you. The code does quite a lot of different things in one place, I think it helps if I draw some lines and highlight these different parts.
+I understand that the code is a bit wild, so let me explain it to you by drawing some lines and highlighting the different parts.
 
 ![](images/payment-original-illustration.png)
 
@@ -173,11 +173,11 @@ useEffect(() => {
 //...
 ```
 
-It defined a `fetchPaymentMethods` function inside, which will `fetch` data from a remote service. It will check if everything goes well and if the returned array has any elements. If there are, it converts the fetched data into a shape defined as `LocalPaymentMethod` and amend one more pre-defined item `cash` into a list, and then sets it as a `state`, named `paymentMethods`.
+This hook defines a `fetchPaymentMethods` function which will `fetch` data from a remote service. This function checks if everything goes well and if the returned array has any elements. If there are, the function converts the fetched data into a shape defined as `LocalPaymentMethod`, appends the pre-defined `cash` item into a list, before setting it as a `state`, named `paymentMethods`.
 
-Note here the response from remote is defined as type `RemotePaymentMethod`, and that type is from the service side that we don’t have control of, so we’ll have to make the conversion here instead so that it can be used in the JSX.
+Note here the response from remote is defined as type `RemotePaymentMethod`, and that type is from the service side that we don’t have control of, so we’ll have to make the conversion here so it can be used in the JSX.
 
-After this big block of code in `Payment` component, there is the actual `render`, which is relatively straightforward thanks to the declarative API. It uses the data passed in (and state data defined by `useState`) for initial rendering, and whenever these data are changed, React will re-render the component.
+After this big block of code in `Payment` component, there is the actual `render`, which is relatively straightforward thanks to the declarative API. It uses the data passed in (and state data defined by `useState`) for initial rendering, and whenever this data changes, React will re-render the component.
 
 ```tsx
 return (
