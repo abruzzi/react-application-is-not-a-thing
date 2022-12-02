@@ -63,17 +63,17 @@ To make this matter worse, the backend never returns the data the front-end expe
 
 ### Frontend applications have many parts
 
-React itself doesn’t care much about where to put the calculation or business logic, which is fair as it’s only a library for building user interfaces. And beyond that view layer, a frontend application has other parts as well. To make the application work, you will need a router, local storage, cache in different levles, network requests, 3rd-party integrations, 3rd-party login, security, logging, performance tuning etc.
+React itself doesn’t care much about where to put calculation or business logic, which is fair as it’s only a library for building user interfaces. And beyond that view layer, a frontend application has other parts as well. To make the application work, you will need a router, local storage, cache at different levels, network requests, 3rd-party integrations, 3rd-party login, security, logging, performance tuning, etc.
 
-With all these context, **trying to squeeze everything into React components or hooks** obviouly not a good idea. And in the real world, that approach will either not work, or it works only in a tiny application but can’t scale. 
+With all this extra context, **trying to squeeze everything into React components or hooks** is obviouly not a good idea. And in the real world, that approach will either not work, or only work in a tiny application that cannot scale. 
 
 And the solution is to rethink the front-end application structure, figure out where the complexity comes from, and then try to apply design principles and patterns we learnt in traditional application development. 
 
-In [this article](https://martinfowler.com/bliki/PresentationDomainDataLayering.html), Martin Fowler had a great summary of the idea of having the view-model-data layering. And the idea here is that even in frontend application itself, when it grows to a certain level of complicatiy, we can borrow the principle as well.
+In [this article](https://martinfowler.com/bliki/PresentationDomainDataLayering.html), Martin Fowler  has a great summary of the idea of having the view-model-data layering. And the idea here is that we can borrow this principle even in frontend applications, when they grows to a certain level of complicatiy.
 
-> On the whole I've found this to be an effective form of modularization for many applications and one that I regularly use and encourage. It's biggest advantage (for me) is that it allows me to reduce the scope of my attention by allowing me to think about the three topics relatively independently. 
+> On the whole I've found this to be an effective form of modularization for many applications and one that I regularly use and encourage. It's biggest advantage is that it allows me to increase my focus by allowing me to think about the three topics (i.e., view, model, data) relatively independently. 
 
-For example, to handle these issues (they are not new problems, by the way), the Layered Architecture has been used, and it works well in most cases. Also, the MVC, MVP and other patterns for solving complicated software problems are widely used in other fields of software, and there is no reason we should not use them in frontend world.
+For example, to handle these issues, layered architectures have been used, and they work well in most cases. Also, MVC, MVP and other patterns for solving complicated problems used in other fields of software, and there is no reason why we should not use them in the frontend world.
 
 So in the following sections, I'll walk you through a feature I excerpted from a real project to demonstrate all the patterns and design principles I think useful for big frontend applications. 
 
