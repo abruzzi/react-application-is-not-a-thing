@@ -1,6 +1,6 @@
-# There is no such thing as a React application.
+# The patterns of building React applications
 
-Like it or not, there is no such thing as a React application. I mean, there are front-end applications written in JavaScript or TypeScript that happen to use React as their view layer. More often than not, people squeeze different things into React components or hooks to make the application work, but the effort of understanding the code with these *ad hoc* additions is relatively high, as well as the increased risk to code modification.
+All right, I have to confess that there is no such thing as a React application. I mean, there are front-end applications written in JavaScript or TypeScript that happen to use React as their view layer. More often than not, people squeeze different things into React components or hooks to make the application work, but the effort of understanding the code with these *ad hoc* additions is relatively high, as well as the increased risk to code modification.
 
 It's easy to forget that React, at its core, is a library (not a framework) that helps you build the user interface.
 
@@ -61,7 +61,7 @@ Developers have tried to fix these problems in many different ways. State manage
 
 To make this matter worse, the backend never returns the data the front-end expects, so there will be a lot of logic needed to convert data from one shape to another, perform calculations, etc. I’ll address this in an example below. 
 
-### Frontend applications have many parts
+### Apart from the user interface
 
 React itself doesn’t care much about where to put calculation or business logic, which is fair as it’s only a library for building user interfaces. And beyond that view layer, a frontend application has other parts as well. To make the application work, you will need a router, local storage, cache at different levels, network requests, 3rd-party integrations, 3rd-party login, security, logging, performance tuning, etc.
 
@@ -75,7 +75,50 @@ In [this article](https://martinfowler.com/bliki/PresentationDomainDataLayering.
 
 For example, to handle these issues, layered architectures have been used, and they work well in most cases. Also, MVC, MVP and other patterns for solving complicated problems used in other fields of software, and there is no reason why we should not use them in the frontend world.
 
+## The evolution of a React application
+
+For small or one-off projects, you might find that all logic is just written inside React components. You may see one or only a few components in total. Some send requests to fetch data on `useEffect` after the components render.
+
+### Single Component Application 
+
+It can be called pretty much a Single Component Application:
+
+![Single component application](images/evolution-1.png)
+
+But soon, you realise one single component requires a lot of time just to read what is going on. For example, there is logic to iterate through a list and generate each item. Also, there is some logic for using 3rd-party components with only a few `configuration` code, apart from other logic. 
+
+### Multiple Component Application 
+
+You decided to split the component into several components, with these structures reflecting what's happening on the result HTML is a good idea, and it helps you to focus on one component at a time.
+
+![Multiple component](images/evolution-2.png)
+
+And as your application grows, apart from the view, there are things like sending network requests, converting data into different shapes for the view to consume, and collecting data to send back to the server. And having these code inside components doesn't sound right as they're not really about user interfaces. Also, some components have too many `useState` and other Reacat hooks. 
+
+### State management with hooks
+
+It's a better idea to split this logic into a separate places. Luckily in React, you can define your own hooks. That's a great way to share these `state` and the logic of whenever states change.
+
+![Hooks](images/evolution-3.png)
+
+That's awesome! You have a bunch of elements extracted from your single component application, and you have a few pure presentational components and some reusable hooks that make other components stateful. The only problem is that in hooks, apart from the side effect and state management, some logic doesn't seem to belong to the `state` management but pure calculations. 
+
+### Business models emerged
+
+And you started to become aware that extracting this logic into yet another place can bring you many benefits. For example, with that split, the logic can be cohesive and independent of any views. Then you extract a few domain objects. These simple objects can handle data mapping (from one format to another), check nulls and use fallback values as required. Also, as the amount of these domain objects grows, you find you need some inheritance or polymorphism to make things even cleaner. Thus you applied many design patterns you found helpful from other places into the front-end application here.
+
+![Domain Object](images/evolution-4.png)
+
+### Layered frontend application
+
+The application keeps growing, and then you find some patterns emerge. There are a bunch of objects that do not belong to any user interface, and they also don't care about whether the underlying data is from remote service, local storage or cache. And then, you want to split them into different layers.
+
+![Layers](images/evolution-5.png)
+
+The above evolution process is a high-level overview, and you should have a taste of how you should structure your code or at least what the direction should be. However, there will be many details you need to consider before applying the theory in your application.
+
 So in the following sections, I'll walk you through a feature I excerpted from a real project to demonstrate all the patterns and design principles I think useful for big frontend applications. 
+
 
 ## Introduction of the Payment feature
 
@@ -973,6 +1016,4 @@ Compared to React, the code above is a bit cumbersome. But the idea here is that
 ![jquery ui](images/jquery-ui.png)
 
 ## Conclusion
-
-
 
