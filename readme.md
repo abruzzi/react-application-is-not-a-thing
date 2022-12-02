@@ -1,18 +1,18 @@
 # There is no such thing as a React application.
 
-Like it or not, there is no such thing as a React application. I mean, there are front-end applications written in JavaScript or TypeScript that happen to use React as their view layer. More often than not, people squeeze different things into React components or hooks to make the application to work, but the effort of understanding the code with these *ad hoc* approach is relatively high, also modifying the codebase is risky.
+Like it or not, there is no such thing as a React application. I mean, there are front-end applications written in JavaScript or TypeScript that happen to use React as their view layer. More often than not, people squeeze different things into React components or hooks to make the application work, but the effort of understanding the code with these *ad hoc* additions is relatively high, as well as the increased risk to code modification.
 
-It's easy to overlook that React, at its core, is a library (not a framework) that helps you to build the user interface.
+It's easy to forget that React, at its core, is a library (not a framework) that helps you build the user interface.
 
 > A JavaScript library for building user interfaces
 > -- React Homepage
 
-In this article, I would like to discuss a few patterns and techniques you can use to reshape the “React” application to a regular one, but with React as its view only. The benefit of this separation is that you will be more confident to make changes in the underlying domain logic without worrying too much about the surfacing views or vice versa.
+In this article, I would like to discuss a few patterns and techniques you can use to reshape your “React application" into a regular one, but with React as its view only. The benefit of this separation is that you will be more confident to make changes in the underlying domain logic without worrying too much about the surface views, and vice versa.
 
 It may sound pretty straightforward, however, while implementing concrete features, several details need to be examined and sometimes, you may need to trade off a few other things.
 ## Welcome to the real world React application
 
-Most developers were impressed by React's simplicity and the idea that a user interface is only a pure function to map data into DOM. And it is in some way if you look at the example like rendering some static data on the page in React:
+Most developers were impressed by React's simplicity and the idea that a user interface is only a pure function to map data into the DOM. And it is in some way if you look at this example of rendering static data on the page in React:
 
 ```tsx
 const TDDSteps = () => {
@@ -32,9 +32,9 @@ const TDDSteps = () => {
 };
 ```
 
-The code will generate an ordered list with three items, just as you would expect. The declarative way of writing the user interface is also easy to understand and just intuitive compared to the prior libraries like `Backbone` or `jQuery` , which provide imperative APIs for writing user interfaces.
+This code will generate an ordered list with three items, just as you would expect. This declarative way of writing the user interface is also easy to understand and intuitive compared to prior libraries like `Backbone` or `jQuery`, which provide imperative APIs for writing user interfaces.
 
-The difference between these two approaches is pretty apparent. With imperative code, you will have to think in detail about **how** to use lower API to compose UI, while declarative is more like describing **what** you want to display on a page.
+The difference between imperative and declarative approaches is pretty apparent. With imperative code, you will have to think in detail about **how** to use lower level APIs to compose the UI, while declarative code is more like describing **what** you want to display on a page.
 
 ```tsx
 $(function () {
@@ -55,11 +55,11 @@ $(function () {
 });
 ```
 
-Apart from the elegant and declarative APIs in React, the pure functions and virtual DOM stuff are also brilliant in making the code readable and performant. But developers start to struggle when they need to send a network request to the backend service or perform page navigation as these side effect is making the component not so “pure”. And once you have to consider these different states, either the global state or local state, things quickly get complicated, and the dark side of the user interface emerges. 
+Apart from the elegant and declarative APIs in React, its pure functions and virtual DOM are also brilliant in making the code readable and performant. But developers start to struggle when they need to send a network request to a backend service or perform page navigation, as these side effects make the component less “pure”. And once you consider these different states (either global state or local state), things quickly get complicated, and the dark side of the user interface emerges. 
 
-Developers have tried to fix these problems in many different ways. State management like `redux` or `mobX` was popular for a while until people realised it was way too complicated. Also, each library seems to have its own paradigm, terms and patterns, and there are always too many new concepts more than you need to build a “simple” front-end application. 
+Developers have tried to fix these problems in many different ways. State management libraries like `redux` and `mobX` were popular for a while until people realised they were way too complicated. Also, each library seems to have its own paradigm, terms and patterns, and there are always more concepts  than you need to build a “simple” front-end application. 
 
-To make the matter worse, the backend never returns the data the front-end expects, so there will be many logic to convert data from one shape to another, do a few calculation, etc. I’ll address soon in an example below. 
+To make this matter worse, the backend never returns the data the front-end expects, so there will be a lot of logic needed to convert data from one shape to another, perform calculations, etc. I’ll address this in an example below. 
 
 ### Frontend applications have many parts
 
