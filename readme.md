@@ -1,15 +1,24 @@
-# The patterns of building React applications
+# The patterns of building "React" applications
 
 All right, I have to confess that there is no such thing as a React application. I mean, there are front-end applications written in JavaScript or TypeScript that happen to use React as their view layer. More often than not, people squeeze different things into React components or hooks to make the application work, but the effort of understanding the code with these *ad hoc* additions is relatively high, as well as the increased risk to code modification.
+
+In this article, I would like to discuss a few patterns and techniques you can use to reshape your “React application" into a regular one, but with React as its view (you can even swap these views into another view libray without too much efforts). 
+
+The critical point here is you should analyse what role each part is playing within an application (even on the surface, they might be packed in the same file). Separate view from no-view logic, split the no-view logic further by their responsibilities and place them in the right places.
+
+The benefit of this separation is that you will be more confident to make changes in the underlying domain logic without worrying too much about the surface views, and vice versa.
+
+## React is a humble library for building views
 
 It's easy to forget that React, at its core, is a library (not a framework) that helps you build the user interface.
 
 > A JavaScript library for building user interfaces
 > -- React Homepage
 
-In this article, I would like to discuss a few patterns and techniques you can use to reshape your “React application" into a regular one, but with React as its view only. The benefit of this separation is that you will be more confident to make changes in the underlying domain logic without worrying too much about the surface views, and vice versa.
+It may sound pretty straightforward. But I have seen many cases where people write the data preparation logic right in the place where it's consumed. For example, fetching data inside a React component, in the `useEffect` block right above the rendering part, or performing data mapping once they got the response from the server side. 
 
-It may sound pretty straightforward, however, while implementing concrete features, several details need to be examined and sometimes, you may need to trade off a few other things.
+Perhaps because there is yet to be a universal standard in the frontend world, or it's a bad programming habit. Frontend applications should not be treated too differently from regular software applications. In the frontend world, you still use separation of concerns in general to arrange the code structure. And all the proven useful design patterns still apply.
+
 ## Welcome to the real world React application
 
 Most developers were impressed by React's simplicity and the idea that a user interface is only a pure function to map data into the DOM. And it is in some way if you look at this example of rendering static data on the page in React:
@@ -244,7 +253,7 @@ return (
 );
 ```
 
-Here, we’re iterating through the state `paymentMethods` and mapping each element into a JSX node, which will, in turn, be rendered as a radio button inside a `label`. And after that, there will be a button beneath to show the total amount of an order.
+We’re iterating through the state `paymentMethods` and mapping each element into a JSX node which will be rendered as a radio button inside a `label`. And after that, there will be a button beneath to show the total amount of an order.
 
 ### The problem with the initial implementation
 
@@ -931,7 +940,10 @@ And our class diagram is changed into something like the one below. We have most
 
 ![refactoring](images/refactoring-3.png)
 
-## The ultimate goal: rewrite the User Interface
+## The benefits of having these layers
+
+Let's look at what the layers bring us apart from clean boundaries and separation of concerns.
+### Rewrite the User Interface
 
 One of the benefits of the separation we’ve been talking about above is that, if we have to (even very unlikely in most projects), we can replace the view without breaking the underlying models and logic. 
 
@@ -1015,5 +1027,28 @@ Compared to React, the code above is a bit cumbersome. But the idea here is that
 
 ![jquery ui](images/jquery-ui.png)
 
+### How about the data fetching?
+
+The whole point of having these layers is that we would like each layer to be loosely coupled with other application parts. In other words, the impact should be minimal if we have to make changes or even replace elements from the application. As you have seen above, it's possible to replace the view without too much effort and remain the domain objects (like the strategy interface and its implementations) intact.
+
+For instance, if we want to use `tenstack-query` (formal `react-query`) to handle all the network-related tasks, like cache, prefetch, re-fetch and so on, to relieve the load in views. The only change would be in `usePaymentMethods` hook.
+
+```tsx
+export const usePaymentMethods = () => {
+  const { data: paymentMethods = [] } = useQuery({
+    queryKey: ["paymentMethods"],
+    queryFn: () => client.fetch(),
+  });
+
+  return {
+    paymentMethods
+  }
+}
+```
+
+And we don't even need to have the temporary `useState` and the async `useEffect` for `paymentMethods`, as they are now handled by `tanstack-query`. And objects like `FetchClient` and the `PaymentMethod` model are all working just as expected.
 ## Conclusion
 
+Building React application, or a frontend application with React as its view, should not be treated as a new type of software. Most of the patterns and principles for building the traditional user interface still apply. Even the patterns for constructing a headless service in the backend are also valid in the frontend field. We can use layers in the frontend and have the user interface part as thin as possible, sink the logic into a supporting model layer, and data access into another.
+
+The benefit of having these layers in frontend applications is that you only need to understand one piece without worrying about others. Also, with the improvement of reusability, making changes to existing code would be relatively more manageable than before. 
