@@ -1,12 +1,14 @@
 # The patterns of building "React" applications
 
-All right, I have explain what I mean when I say there is no such thing as a React application. I mean, there are front-end applications written in JavaScript or TypeScript that happen to use React as their view layer. More often than not, people squeeze different things into React components or hooks to make the application work, but the effort of understanding the code with these *ad hoc* additions is relatively high, as well as the increased risk to code modification.
+Firstly, there isn't such a thing as React application. I mean, there are front-end applications written in JavaScript or TypeScript that happen to use React as their views. However, I think it's not fair to call them React applications, just as we wouldn't call a Java EE application JSP application. 
 
-In this article, I would like to discuss a few patterns and techniques you can use to reshape your “React application" into a regular one, but with React as its view (you can even swap these views into another view libray without too much efforts). 
+More often than not, people squeeze different things into React components or hooks to make the application work. This type of less-organised structure isn't a problem if the application is small or mostly without much business logic. However, as more business logic shifted to front-end in many cases, this everything-in-component shows problems. To be more specific, the effort of understanding such type of code is relatively high, as well as the increased risk to code modification.
 
-The critical point here is you should analyse what role each part is playing within an application (even on the surface, they might be packed in the same file). Separate view from no-view logic, split the no-view logic further by their responsibilities and place them in the right places.
+In this article, I would like to discuss a few patterns and techniques you can use to reshape your “React application" into a regular one, and only with React as its view (you can even swap these views into another view libray without too much efforts). 
 
-The benefit of this separation is that you will be more confident to make changes in the underlying domain logic without worrying too much about the surface views, and vice versa.
+The critical point here is you should analyse what role each part of the code is playing within an application (even on the surface, they might be packed in the same file). Separate view from no-view logic, split the no-view logic further by their responsibilities and place them in the **right** places.
+
+The benefit of this separation is that it allows you to make changes in the underlying domain logic without worrying too much about the surface views, or vice versa. Also, it can increase the reusability of the domain logic in other places as they are not coupled to any other parts.
 
 ## React is a humble library for building views
 
@@ -15,9 +17,11 @@ It's easy to forget that React, at its core, is a library (not a framework) that
 > A JavaScript library for building user interfaces
 > -- React Homepage
 
-It may sound pretty straightforward. But I have seen many cases where people write the data preparation logic right in the place where it's consumed. For example, fetching data inside a React component, in the `useEffect` block right above the rendering part, or performing data mapping once they got the response from the server side. 
+It may sound pretty straightforward. But I have seen many cases where people write the data fetching, reshaping logic right in the place where it's consumed. For example, fetching data inside a React component, in the `useEffect` block right above the rendering, or performing data mapping/transforming once they got the response from the server side. 
 
 ```js
+// ...
+
 useEffect(() => {
   fetch("https://address.service/api")
     .then((res) => res.json())
@@ -31,6 +35,8 @@ useEffect(() => {
       setAddresses(addresses);
     });
 });
+
+// the actual rendering...
 ```
 
 Perhaps because there is yet to be a universal standard in the frontend world, or it's just a bad programming habit. Frontend applications should not be treated too differently from regular software applications. In the frontend world, you still use separation of concerns in general to arrange the code structure. And all the proven useful design patterns still apply.
@@ -40,6 +46,7 @@ Perhaps because there is yet to be a universal standard in the frontend world, o
 Most developers were impressed by React's simplicity and the idea that a user interface can be expressed as a pure function to map data into the DOM. And to a certain extent, *it IS*. 
 
 But developers start to struggle when they need to send a network request to a backend or perform page navigation, as these **side effects** make the component less “pure”. And once you consider these different states (either global state or local state), things quickly get complicated, and the dark side of the user interface emerges. 
+
 ### Apart from the user interface
 
 React itself doesn’t care much about where to put calculation or business logic, which is fair as it’s only a library for building user interfaces. And beyond that view layer, a frontend application has other parts as well. To make the application work, you will need a router, local storage, cache at different levels, network requests, 3rd-party integrations, 3rd-party login, security, logging, performance tuning, etc.
@@ -48,13 +55,13 @@ With all this extra context, **trying to squeeze everything into React component
 
 Packing all the code into components may work in small applications like a Todo or one-form application. Still, the efforts to understand such application will be significant once it reaches a certain level. Not to mention adding new features or fixing existing defects.
 
-If we could separate different concerns into files or folders with structures, the mental load required to understand the application would be significantly reduced. And you only have to focus on one thing at a time. Luckily, there are already some well-proven patterns back to the pre-web time. These design principles and patterns are discussed well to solve the common user interface problems - but in the desktop GUI application context.
+If we could separate different concerns into files or folders with structures, the mental load required to understand the application would be significantly reduced. And you only have to focus on one thing at a time. Luckily, there are already some well-proven patterns back to the pre-web time. These design principles and patterns are explored and discussed well to solve the common user interface problems - but in the desktop GUI application context.
 
-In [this article](https://martinfowler.com/bliki/PresentationDomainDataLayering.html), Martin Fowler has a great summary of the concept of view-model-data layering. The idea here is that we can borrow this principle even in frontend applications, when they grow to a certain level of complexity.
+In [this article](https://martinfowler.com/bliki/PresentationDomainDataLayering.html), Martin Fowler has a great summary of the concept of view-model-data layering. 
 
 > On the whole I've found this to be an effective form of modularization for many applications and one that I regularly use and encourage. It's biggest advantage is that it allows me to increase my focus by allowing me to think about the three topics (i.e., view, model, data) relatively independently. 
 
-Layered architectures have been used to cope the challenges in large GUI applications, and certainly we can use these established patterns of front-end organization in our React applications.
+Layered architectures have been used to cope the challenges in large GUI applications, and certainly we can use these established patterns of front-end organization in our "React applications".
 
 ## The evolution of a React application
 
