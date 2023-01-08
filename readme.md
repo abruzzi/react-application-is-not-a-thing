@@ -67,6 +67,10 @@ Layered architectures have been used to cope the challenges in large GUI applica
 
 For small or one-off projects, you might find that all logic is just written inside React components. You may see one or only a few components in total. The code looks pretty much like HTML, with only some variable or state used to make the page "dynamic". Some might send requests to fetch data on `useEffect` after the components render.
 
+As the application grows, and more and more code are added to codebase. Without a proper way to organise them, soon the codebase will turn into unmaintainable state, meaning that even adding small features can be time-consuming as developers need more time to read the code.
+
+So I'll list a few steps that can help to relief the maintainable problem. It generally require a bit more efforts, but it will pay off to have the structure in you application. Let's have a quick review of these steps to build front-end applications that scale.
+
 ### Single Component Application 
 
 It can be called pretty much a Single Component Application:
@@ -169,79 +173,15 @@ export const Payment = ({ amount }: { amount: number }) => {
 };
 ```
 
-I understand that the code is a bit wild, so let me take you through it step by step by drawing some lines and highlighting the different parts.
+The code above is pretty typical. You might have seen it in the get started tutorial somewhere. And it's not necessary bad. However, as we mentioned above, the code has mixed different concerns all in a single component and makes it a bit difficult to read.
 
-![](images/payment-original-illustration.png)
-
-### Break it down
-
-Firstly, there is a `useEffect` hook before the rendering block (the part that returns JSX at the lower part):
-
-```tsx
-//...
-const [paymentMethods, setPaymentMethods] = useState<LocalPaymentMethod[]>([]);
-
-useEffect(() => {
-  const fetchPaymentMethods = async () => {
-    const url = "https://online-ordering.com/api/payment-methods";
-
-    const response = await fetch(url);
-    const methods: RemotePaymentMethod[] = await response.json();
-
-    if (methods.length > 0) {
-      const extended: LocalPaymentMethod[] = methods.map((method) => ({
-        provider: method.name,
-        label: `Pay with ${method.name}`,
-      }));
-      extended.push({ provider: "cash", label: "Pay in cash" });
-      setPaymentMethods(extended);
-    } else {
-      setPaymentMethods([]);
-    }
-  };
-
-  fetchPaymentMethods();
-});
-//...
-```
-
-It defines a `fetchPaymentMethods` function, which will `fetch` data from a remote service. It will check if the returned array has any elements. If it does, it converts the fetched data into a shape defined as `LocalPaymentMethod`, amends one more pre-defined item (`cash`) to a list, and then sets it as a `state` variable named `paymentMethods`.
-
-Note here the response from remote is defined as type `RemotePaymentMethod`, and that type is from the server side that we don’t have control of, so we’ll have to make the conversion here instead so that it can be used in the JSX.
-
-After this big block of code in the `Payment` component, there is the actual `render`, which is relatively straightforward thanks to the declarative API. It uses the data passed in (and state data defined by `useState`) for the initial rendering, and whenever this data is changed, React will re-render the component.
-
-```tsx
-return (
-  <div>
-    <h3>Payment</h3>
-    <div>
-      {paymentMethods.map((method) => (
-        <label key={method.provider}>
-          <input
-            type="radio"
-            name="payment"
-            value={method.provider}
-            defaultChecked={method.provider === "cash"}
-          />
-          <span>{method.label}</span>
-        </label>
-      ))}
-    </div>
-    <button>${amount}</button>
-  </div>
-);
-```
-
-We’re iterating through the state `paymentMethods` and mapping each element into a JSX node which will be rendered as a radio button inside a `label`. And after that, there will be a button beneath to show the total amount of an order.
+![Payment code illustration](images/payment-original-illustration.png)
 
 ### The problem with the initial implementation
 
-The code snippet above works well, and it’s also passing all my unit tests. But I’m sure you have spotted quite a few code smells already.
+The first issue I would like to address is how **busy** the component is. By that, I mean `Payment` deals with different things and makes the code difficult to read as you have to switch context in your head as you read. It's not a big problem at this stage for this simple example. However, as the code gets bigger and more complex, we'll need to refactoring them a bit.
 
-The first issue I would like to address is how **busy** the component is. By that, I mean `Payment` deals with different things and makes the code difficult to read as you have to switch context in your head as you read. There are a few lines for a network request, a few more for converting data to another shape, and then the rendering logic itself.
-
-It’s good practice to split view and non-view code into separate places. The reason is that, in general, views are changing more frequently than this non-view logic. Also, as they deal with different aspects of the application, separating them allows you to focus on a particular self-contained module that is much more manageable when implementing new features.
+It’s good practice to split view and non-view code into separate places. The reason is, in general, views are changing more frequently than non-view logic. Also, as they deal with different aspects of the application, separating them allows you to focus on a particular self-contained module that is much more manageable when implementing new features.
 
 ### The split of view and non-view code 
 
@@ -318,21 +258,17 @@ Also, if we can make a component a pure function - meaning given any input, the 
 We can use `Extract Function` again (maybe we should call it `Extract Component`, but in React, a component is a function anyway).
 
 ```tsx
-const PaymentMethods = ({
-  paymentMethods,
-}: {
-  paymentMethods: LocalPaymentMethod[];
-}) => (
+const PaymentMethods = ({ options }: { options: LocalPaymentMethod[] }) => (
   <Fragment>
-    {paymentMethods.map((method) => (
-      <label key={method.provider}>
+    {options.map((option) => (
+      <label key={option.provider}>
         <input
           type="radio"
           name="payment"
-          value={method.provider}
-          defaultChecked={method.provider === "cash"}
+          value={option.provider}
+          defaultChecked={option.provider === "cash"}
         />
-        <span>{method.label}</span>
+        <span>{option.label}</span>
       </label>
     ))}
   </Fragment>
@@ -349,7 +285,7 @@ const Payment = ({ amount }: { amount: number }) => {
     <div>
       <h3>Payment</h3>
       <div>
-        <PaymentMethods paymentMethods={paymentMethods} />
+        <PaymentMethods options={paymentMethods} />
       </div>
       <button>${amount}</button>
     </div>
@@ -403,7 +339,10 @@ class PaymentMethod {
   }
 
   get label() {
-    return `Pay with ${this.remotePaymentMethod.name}`;
+    if(this.provider === 'cash') {
+      return `Pay in ${this.provider}`
+    }
+    return `Pay with ${this.provider}`;
   }
 
   get isDefaultMethod() {
@@ -453,15 +392,15 @@ Also, in the `PaymentMethods` component, we don’t use the `method.provider ===
 
 ```tsx
 {
-  paymentMethods.map((method) => (
-    <label key={method.provider}>
+  options.map((option) => (
+    <label key={option.provider}>
       <input
         type="radio"
         name="payment"
-        value={method.provider}
-        defaultChecked={method.isDefaultMethod}
+        value={option.provider}
+        defaultChecked={option.isDefaultMethod}
       />
-      <span>{method.label}</span>
+      <span>{option.label}</span>
     </label>
   ));
 }
@@ -471,7 +410,7 @@ Now we’re restructuring our `Payment` component into a bunch of smaller parts 
 
 ![refactoring](images/refactoring-1.png)
 
-### The benefits
+### The benefits of the new structure
 
 - Having a class encapsulates all the logic around a payment method. It’s a domain object and doesn’t have any UI-related information. So testing and potentially modifying logic here is much easier than when embedded in a view.
 - The new extracted component `PaymentMethods` is a pure function and only depends on a domain object array, which makes it super easy to test and reuse elsewhere. We might need to pass in a `onSelect` callback to it, but even in that case, it’s a pure function and doesn’t have to touch any external states.
@@ -486,6 +425,25 @@ Let’s examine the theory here with some further changes to the application. Th
 For example, if the order amount is $19.80, we ask if they would like to donate $0.20. And if a user agrees to donate it, we’ll show the total number on the button.
 
 ![round up](images/round-up.png)
+
+Before we make any changes, let's have a quick look at the current code structure. I prefer have different parts in their folder so it's easy for me to navigate when it grows bigger.
+
+```
+src
+├── App.tsx
+├── components
+│   ├── Payment.tsx
+│   └── PaymentMethods.tsx
+├── hooks
+│   └── usePaymentMethods.ts
+├── models
+│   └── PaymentMethod.ts
+└── types.ts
+```
+
+`App.tsx` is the main entry, it uses `Payment` component, and `Payment` uses `PaymentMethods` for rendering different payment options. The hook `usePaymentMethods` is responsible for fetching data from remote service and then convert it to a `PaymentMethod` domain object that is used to hold `label` and the `isDefaultChecked` flag. 
+
+### Internal state: agree to donation
 
 To make these changes in `Payment`, we need some additional `state` variables. To be more specific, a boolean `agreeToDonate` will be used to indicate whether a user selected the checkbox on the page, in addition to `total` and `tip`, to show the total number when they agreed and the tip in the checkbox label, respectively.
 
@@ -511,22 +469,22 @@ And for the view, the JSX will be a `checkbox` plus a short description:
 
 ```tsx
 return (
-      //...
-      <div>
-        <label>
-          <input
-            type="checkbox"
-            onChange={handleChange}
-            checked={agreeToDonate}
-          />
-          <p>{agreeToDonate
-            ? "Thanks for your donation."
-            : `I would like to donate $${tip} to charity.`}</p>
-        </label>
-      </div>
-      <button>${total}</button>
-      //...
-  );
+  //...
+  <div>
+    <label>
+      <input
+        type="checkbox"
+        onChange={handleChange}
+        checked={agreeToDonate}
+      />
+      <p>{agreeToDonate
+        ? "Thanks for your donation."
+        : `I would like to donate $${tip} to charity.`}</p>
+    </label>
+  </div>
+  <button>${total}</button>
+  //...
+);
 ```
 
 With these new changes, our code starts handling multiple things again. It’s essential always to stay alert for potential mixing of view and non-view code. If you find any unnecessary mixing, look for ways to split them.
@@ -722,24 +680,24 @@ As illustrated above, the coloured lines indicate branches of country code check
 
 For example, if we consider `Denmark` as a new country the business is expanding to, we’ll end up with code in many places like:
 
-```tsx
+```ts
 const currencySignMap = {
   JP: "¥",
   DK: "Kr.",
   AU: "$",
 };
 
-const getDollarSign = (countryCode: CountryCode) =>
+const getCurrencySign = (countryCode: CountryCode) =>
   currencySignMap[countryCode];
 ```
 
-One possible solution for the problem of having branches scattered in different places is to use polymorphism to replace these switch cases or table look-up logic. For this particular case, we can also apply the `Strategy Pattern`.
+One possible solution for the problem of having branches scattered in different places is to use polymorphism to replace these switch cases or table look-up logic.
 
-### Polymorphism to the rescue: Strategy Pattern
+### Polymorphism to the rescue
 
-The first thing we can do is examine all the branches and see what they are actually testing. For example, different countries have different currency signs, so `getCurrencySign` can be extracted into a public interface. Also, other countries might have different round-up algorithms. Thus, the `algorithm` can be part of the interface as well.
+The first thing we can do is examine all the branches and see what they are actually testing. For example, different countries have different currency signs, so `getCurrencySign` can be extracted into a public interface. Also, other countries might have different round-up algorithms.
 
-```tsx
+```ts
 export interface PaymentStrategy {
   getCurrencySign(): string;
 
@@ -751,7 +709,7 @@ export interface PaymentStrategy {
 
 A concrete implementation of the strategy interface would be like following the code snippet: `PaymentStrategyAU`. Note here the interface and classes have nothing to do with the UI directly. This logic can be shared in other places in the application or even moved to backend services (if the backend is written in Node, for example).
 
-```tsx
+```ts
 export class PaymentStrategyAU implements PaymentStrategy {
   getCurrencySign(): string {
     return "$";
@@ -769,11 +727,37 @@ export class PaymentStrategyAU implements PaymentStrategy {
 }
 ```
 
-As illustrated below, we only invoke methods from the abstract interface (the grey lines) in each call site. They do not depend on branches anymore but the interface, and at runtime, we can easily substitute one `strategy` for another (the red, green and blue square that implements the interface).
+We could have subclasses for each country, and each has the country specific round-up logic. However, as function is the first-class citizen in JavaScript, we can pass in the round-up algorithm into the strategy implementation to make the code less overhead without subclasses.
+
+```ts
+class PaymentStrategy {
+  private readonly currencySign: string;
+  private readonly algorithm: RoundUpStrategy;
+
+  public constructor(currencySign: string, roundUpAlgorithm: RoundUpStrategy) {
+    this.currencySign = currencySign;
+    this.algorithm = roundUpAlgorithm;
+  }
+
+  getCurrencySign(): string {
+    return this.currencySign;
+  }
+
+  getRoundUpAmount(amount: number): number {
+    return this.algorithm(amount);
+  }
+
+  getTip(amount: number): number {
+    return calculateTipFor(this.getRoundUpAmount.bind(this))(amount);
+  }
+}
+```
+
+As illustrated below, we only invoke methods from the abstract interface (the grey lines) in each call site. They do not depend on scattered logic anymore but the single class `PaymentStrategy`. And at runtime, we can easily substitute one instance of `strategy` for another (the red, green and blue square indicates different instances of `PaymentStrategy` class).
 
 ![strategy pattern](images/strategy-pattern.png)
 
-With these classes, in the `useRoundUp` hook, the code could be simplified as:
+And the `useRoundUp` hook, the code could be simplified as:
 
 ```tsx
 const useRoundUp = (amount: number, strategy: PaymentStrategy) => {
@@ -848,9 +832,9 @@ For example, if you would build a new interface - maybe with `vue` or even a com
 
 ### Push the design a bit further: extract a network client
 
-If I keep this “split” mindset (for both view and non-view logic, or more broadly split code into its own object), the next step is to do something to relieve the `usePaymentMethods` hook. 
+If I keep this "Separation of Concerns" mindset (for spliting view and non-view logic, or more broadly split different responsibility into its own funciton/class/object), the next step is to do something to relieve the mixing in `usePaymentMethods` hook. 
 
-At the moment, that hook doesn’t have much code. If I add things like error handling and retries, it can easily grow. But hooks are a React concept, and you cannot reuse it directly in your next fancy `vue` view, right?
+At the moment, that hook doesn’t have much code. If I add things like error handling and retries, it can easily bloat. Also hooks are a React concept, and you cannot reuse it directly in your next fancy `vue` view, right?
 
 ```tsx
 export const usePaymentMethods = () => {
@@ -872,35 +856,14 @@ export const usePaymentMethods = () => {
 };
 ```
 
-I have extracted `convertPaymentMethods` here as a global function. What if I extract the network fetching and converting into a class, which can be reused in other places in the application?
+I have extracted `convertPaymentMethods` here as a global function. I'd like to move the fetching logic into a separate function so I can use library like `react-query` to handle all the network-related headaches for me. 
 
 ```tsx
-export class FetchClient {
-  private readonly url: string;
+const fetchPaymentMethods = async () => {
+  const response = await fetch("https://online-ordering.com/api/payment-methods");
+  const methods: RemotePaymentMethod[] = await response.json();
 
-  constructor(url: string) {
-    this.url = url;
-  }
-
-  async fetch() {
-    const response = await fetch(this.url);
-    const methods: RemotePaymentMethod[] = await response.json();
-
-    return this.convertPaymentMethods(methods)
-  }
-
-  convertPaymentMethods(methods: RemotePaymentMethod[]) {
-    if (methods.length === 0) {
-      return [];
-    }
-
-    const extended: PaymentMethod[] = methods.map(
-      (method) => new PaymentMethod(method)
-    );
-    extended.push(payInCash);
-
-    return extended;
-  }
+  return convertPaymentMethods(methods)
 }
 ```
 
@@ -908,20 +871,19 @@ This small class does two things, fetch and convert. It acts like an `Anti-Corru
 
 And for the `usePaymentMethods` hook, the code is pretty simple now:
 
-```tsx
+```ts
 export const usePaymentMethods = () => {
-  //...
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(
+    []
+  );
 
   useEffect(() => {
-    const fetchPaymentMethods = async () => {
-      const methods = await client.fetch();
-      setPaymentMethods(methods);
-    };
-
-    fetchPaymentMethods();
+    fetchPaymentMethods().then(methods => setPaymentMethods(methods))
   });
 
-  //...
+  return {
+    paymentMethods,
+  };
 };
 ```
 
@@ -931,111 +893,10 @@ And our class diagram is changed into something like the one below. We have most
 
 ## The benefits of having these layers
 
-Let's look at what the layers bring us apart from clean boundaries and separation of concerns.
-### Rewrite the User Interface
+The layers bring us clean boundaries and separation of concerns. One of the major benefits of the separation is that, if we have to (even very unlikely in most projects), we can replace the view without changing the underlying models and logic. All because the domain logic is encapsulated in pure JavaScript (or TypeScript) code and isn't aware of the existence of views.
 
-One of the benefits of the separation we’ve been talking about above is that, if we have to (even very unlikely in most projects), we can replace the view without breaking the underlying models and logic, all because the domain logic is encapsulated in pure JavaScript (or TypeScript) code and doesn’t reference the views.
-
-I will show you how to rewrite some of the views in this section with `jQuery` - only for demonstration purposes, I’m not considering error handling or performance in the code below.
-
-For data fetching, we can reuse `FetchClient`, and once we have the result, it’s already mapped to a format that views can use `PaymentMethod` (with a few getter methods).
-
-```tsx
-$(() => {
-  const container = $("#root").find(".container");
-
-  const url =
-    "https://online-ordering.com/api/payment-methods";
-  const client = new FetchClient(url);
-
-  client.fetch().then((methods) => {
-    const paymentMethods = renderPaymentMethods(methods);
-    paymentMethods.appendTo(container);
-  });
-});
-```
-
-I extracted a function `renderPaymentMethods` that uses the `PaymentMethods` array to generate a few radio buttons, and add a default check to `cash`. Note here how we can use `method.isDefaultMethod` and `method.label` from the model directly:
-
-```tsx
-const renderPaymentMethods = (paymentMethods: PaymentMethod[]) => {
-  return $("<div>", { class: "paymentMethods" }).append(
-    paymentMethods.map((method) => {
-      const item = $(`
-        <label>
-          <input type="radio" name="payment">
-          <span></span>
-        </label>
-      `);
-
-      item.find("input").attr({
-        value: method.provider,
-        checked: method.isDefaultMethod,
-      });
-
-      item.find("span").text(method.label);
-      return item;
-    })
-  );
-};
-```
-
-Similarly, we can initialise some `strategy` to calculate round-up as well:
-
-```tsx
-//...
-const strategy = new PaymentStrategyDK();
-const amount = 13.8;
-const tip = strategy.getTip(amount);
-
-let agreeToDonate = false;
-
-const onChange = () => {
-  agreeToDonate = !agreeToDonate;
-  const total = agreeToDonate ? strategy.getRoundUpAmount(amount) : amount;
-
-  $("button.paymentButton").text(formatButtonLabel(strategy, total));
-  $("p.checkbox-content").text(
-    formatCheckboxLabel(agreeToDonate, tip, strategy)
-  );
-};
-
-const checkbox = renderCheckbox(
-  onChange,
-  agreeToDonate,
-  formatCheckboxLabel(agreeToDonate, tip, strategy)
-);
-
-const button = renderPaymentButton(strategy, amount);
-//...
-```
-
-Compared to React, the code above is a bit cumbersome. But the idea here is that the view layer can be replaced or reshaped without touching the underlying domain logic. 
-
-![jquery ui](images/jquery-ui.png)
-
-### How about the data fetching?
-
-The whole point of having these layers is that we would like each layer to be loosely coupled with other application parts. In other words, the impact should be minimal if we have to make changes or even replace elements from the application. As you have seen above, it's possible to replace the view without too much effort and remain the domain objects (like the strategy interface and its implementations) intact.
-
-For instance, if we want to use `tenstack-query` (formal `react-query`) to handle all the network-related tasks, like cache, prefetch, re-fetch and so on, to relieve the load in views. The only change would be in `usePaymentMethods` hook.
-
-```tsx
-export const usePaymentMethods = () => {
-  const { data: paymentMethods = [] } = useQuery({
-    queryKey: ["paymentMethods"],
-    queryFn: () => client.fetch(),
-  });
-
-  return {
-    paymentMethods
-  }
-}
-```
-
-And we don't even need to have the temporary `useState` and the async `useEffect` for `paymentMethods`, as they are now handled by `tanstack-query`. And objects like `FetchClient` and the `PaymentMethod` model are all working just as expected.
 ## Conclusion
 
-Building React application, or a frontend application with React as its view, should not be treated as a new type of software. Most of the patterns and principles for building the traditional user interface still apply. Even the patterns for constructing a headless service in the backend are also valid in the frontend field. We can use layers in the frontend and have the user interface part as thin as possible, sink the logic into a supporting model layer, and data access into another.
+Building React application, or a frontend application with React as its view, should not be treated as a new type of software. Most of the patterns and principles for building the traditional user interface still apply. Even the patterns for constructing a headless service in the backend are also valid in the frontend field. We can use layers in the frontend and have the user interface as thin as possible, sink the logic into a supporting model layer, and data access into another.
 
 The benefit of having these layers in frontend applications is that you only need to understand one piece without worrying about others. Also, with the improvement of reusability, making changes to existing code would be relatively more manageable than before. 
