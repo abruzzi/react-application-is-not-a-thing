@@ -33,59 +33,13 @@ useEffect(() => {
 });
 ```
 
-Perhaps because there is yet to be a universal standard in the frontend world, or it's a bad programming habit. Frontend applications should not be treated too differently from regular software applications. In the frontend world, you still use separation of concerns in general to arrange the code structure. And all the proven useful design patterns still apply.
+Perhaps because there is yet to be a universal standard in the frontend world, or it's just a bad programming habit. Frontend applications should not be treated too differently from regular software applications. In the frontend world, you still use separation of concerns in general to arrange the code structure. And all the proven useful design patterns still apply.
 
 ## Welcome to the real world React application
 
-Most developers were impressed by React's simplicity and the idea that a user interface can be expressed as a pure function to map data into the DOM. And it is in some ways. Take this example of rendering some static data on the page using React:
+Most developers were impressed by React's simplicity and the idea that a user interface can be expressed as a pure function to map data into the DOM. And to a certain extent, *it IS*. 
 
-```tsx
-const TDDSteps = () => {
-  const steps = [
-    "write a test and see it fail",
-    "make it pass with the simplest code",
-    "refactoring",
-  ];
-
-  return (
-    <ol>
-      {steps.map((step) => (
-        <li>{step}</li>
-      ))}
-    </ol>
-  );
-};
-```
-
-The code will generate an ordered list with three items, just as you would expect. The declarative way of writing the user interface is easy to understand and intuitive, especially when compared to the prior libraries like `Backbone` or `jQuery`, which provide imperative APIs for writing user interfaces.
-
-The difference between these two approaches is pretty apparent in the following example. With imperative code, you need to think in detail about **how** to use the lower API to compose UI elements, while declarative code is more like describing **what** you want to display on a page.
-
-```tsx
-$(function () {
-  const container = $("#root");
-
-  const steps = [
-    "write a test and see it fail",
-    "make it pass with the simplest code",
-    "refactoring",
-  ];
-
-  const list = $("<ol>");
-  steps.forEach(function (step) {
-    return $("<li>").text(step).appendTo(list);
-  });
-
-  container.append(list);
-});
-```
-
-Apart from the elegant and declarative APIs in React, its pure functions and virtual DOM are also brilliant in making the code readable and performant. But developers start to struggle when they need to send a network request to a backend service or perform page navigation, as these side effects make the component less “pure”. And once you consider these different states (either global state or local state), things quickly get complicated, and the dark side of the user interface emerges. 
-
-Developers have tried to fix these problems in many different ways. State management libraries like `redux` and `mobX` were popular for a while until people realised they were way too complicated. Also, each library seems to have its own paradigm, terms and patterns, and there are always more concepts than you need to build a “simple” front-end application. 
-
-To make this matter worse, the backend rarely returns the data the front-end expects, so there will be a lot of logic needed to convert data from one shape to another, perform calculations, etc. I’ll illustrate this in an example below. 
-
+But developers start to struggle when they need to send a network request to a backend or perform page navigation, as these **side effects** make the component less “pure”. And once you consider these different states (either global state or local state), things quickly get complicated, and the dark side of the user interface emerges. 
 ### Apart from the user interface
 
 React itself doesn’t care much about where to put calculation or business logic, which is fair as it’s only a library for building user interfaces. And beyond that view layer, a frontend application has other parts as well. To make the application work, you will need a router, local storage, cache at different levels, network requests, 3rd-party integrations, 3rd-party login, security, logging, performance tuning, etc.
