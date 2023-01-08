@@ -17,6 +17,22 @@ It's easy to forget that React, at its core, is a library (not a framework) that
 
 It may sound pretty straightforward. But I have seen many cases where people write the data preparation logic right in the place where it's consumed. For example, fetching data inside a React component, in the `useEffect` block right above the rendering part, or performing data mapping once they got the response from the server side. 
 
+```js
+useEffect(() => {
+  fetch("https://address.service/api")
+    .then((res) => res.json())
+    .then((data) => {
+      const addresses = data.map((item) => ({
+        street: item.streetName,
+        address: item.streetAddress,
+        postcode: item.postCode,
+      }));
+
+      setAddresses(addresses);
+    });
+});
+```
+
 Perhaps because there is yet to be a universal standard in the frontend world, or it's a bad programming habit. Frontend applications should not be treated too differently from regular software applications. In the frontend world, you still use separation of concerns in general to arrange the code structure. And all the proven useful design patterns still apply.
 
 ## Welcome to the real world React application
@@ -74,19 +90,21 @@ To make this matter worse, the backend rarely returns the data the front-end exp
 
 React itself doesn’t care much about where to put calculation or business logic, which is fair as it’s only a library for building user interfaces. And beyond that view layer, a frontend application has other parts as well. To make the application work, you will need a router, local storage, cache at different levels, network requests, 3rd-party integrations, 3rd-party login, security, logging, performance tuning, etc.
 
-With all this extra context, **trying to squeeze everything into React components or hooks** is obviously not a good idea. And in the real world, that approach will either not work, or only work in a tiny application that cannot scale. 
+With all this extra context, **trying to squeeze everything into React components or hooks** is generally not a good idea. The reason is mixing concepts in one place generally leads to more confusion. At first, the component sets up some network request for order status, and then there is some logic to trim off leading space from a string and then navigate somewhere else. The reader must constantly reset their logic flow and jump back and forth from different levels of details.
 
-The solution is to rethink the front-end application structure, figure out where the complexity comes from, and then try to apply design principles and patterns we learnt in traditional application development. 
+Packing all the code into components may work in small applications like a Todo or one-form application. Still, the efforts to understand such application will be significant once it reaches a certain level. Not to mention adding new features or fixing existing defects.
+
+If we could separate different concerns into files or folders with structures, the mental load required to understand the application would be significantly reduced. And you only have to focus on one thing at a time. Luckily, there are already some well-proven patterns back to the pre-web time. These design principles and patterns are discussed well to solve the common user interface problems - but in the desktop GUI application context.
 
 In [this article](https://martinfowler.com/bliki/PresentationDomainDataLayering.html), Martin Fowler has a great summary of the concept of view-model-data layering. The idea here is that we can borrow this principle even in frontend applications, when they grow to a certain level of complexity.
 
 > On the whole I've found this to be an effective form of modularization for many applications and one that I regularly use and encourage. It's biggest advantage is that it allows me to increase my focus by allowing me to think about the three topics (i.e., view, model, data) relatively independently. 
 
-For example, to handle these issues, layered architectures have been used, and they work well in most cases. Also, MVC, MVP and other patterns for solving complicated problems used in other fields of software, and there is no reason why we should not use them in the frontend world.
+Layered architectures have been used to cope the challenges in large GUI applications, and certainly we can use these established patterns of front-end organization in our React applications.
 
 ## The evolution of a React application
 
-For small or one-off projects, you might find that all logic is just written inside React components. You may see one or only a few components in total. Some send requests to fetch data on `useEffect` after the components render.
+For small or one-off projects, you might find that all logic is just written inside React components. You may see one or only a few components in total. The code looks pretty much like HTML, with only some variable or state used to make the page "dynamic". Some might send requests to fetch data on `useEffect` after the components render.
 
 ### Single Component Application 
 
@@ -102,7 +120,7 @@ You decided to split the component into several components, with these structure
 
 ![Multiple component](images/evolution-2.png)
 
-And as your application grows, apart from the view, there are things like sending network requests, converting data into different shapes for the view to consume, and collecting data to send back to the server. And having this code inside components doesn't feel right as they're not really about user interfaces. Also, some components have too many `useState` and other React hooks. 
+And as your application grows, apart from the view, there are things like sending network requests, converting data into different shapes for the view to consume, and collecting data to send back to the server. And having this code inside components doesn't feel right as they're not really about user interfaces. Also, some components have too many internal states.
 
 ### State management with hooks
 
@@ -114,20 +132,21 @@ That's awesome! You have a bunch of elements extracted from your single componen
 
 ### Business models emerged
 
-So you've started to become aware that extracting this logic into yet another place can bring you many benefits. For example, with that split, the logic can be cohesive and independent of any views. Then you extract a few domain objects. These simple objects can handle data mapping (from one format to another), check nulls and use fallback values as required. Also, as the amount of these domain objects grows, you find you need some inheritance or polymorphism to make things even cleaner. Thus you applied many design patterns you found helpful from other places into the front-end application here.
+So you've started to become aware that extracting this logic into yet another place can bring you many benefits. For example, with that split, the logic can be cohesive and independent of any views. Then you extract a few domain objects. 
+
+These simple objects can handle data mapping (from one format to another), check nulls and use fallback values as required. Also, as the amount of these domain objects grows, you find you need some inheritance or polymorphism to make things even cleaner. Thus you applied many design patterns you found helpful from other places into the front-end application here.
 
 ![Domain Object](images/evolution-4.png)
 
 ### Layered frontend application
 
-The application keeps growing, and then you find some patterns emerge. There are a bunch of objects that do not belong to any user interface, and they also don't care about whether the underlying data is from remote service, local storage or cache. And then, you want to split them into different layers.
+The application keeps evolving, and then you find some patterns emerge. There are a bunch of objects that do not belong to any user interface, and they also don't care about whether the underlying data is from remote service, local storage or cache. And then, you want to split them into different layers.
 
 ![Layers](images/evolution-5.png)
 
 The above evolution process is a high-level overview, and you should have a taste of how you should structure your code or at least what the direction should be. However, there will be many details you need to consider before applying the theory in your application.
 
 In the following sections, I'll walk you through a feature I extracted from a real project to demonstrate all the patterns and design principles I think useful for big frontend applications. 
-
 
 ## Introduction of the Payment feature
 
