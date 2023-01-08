@@ -445,7 +445,7 @@ src
 
 ### Internal state: agree to donation
 
-To make these changes in `Payment`, we need some additional `state` variables. To be more specific, a boolean `agreeToDonate` will be used to indicate whether a user selected the checkbox on the page, in addition to `total` and `tip`, to show the total number when they agreed and the tip in the checkbox label, respectively.
+To make these changes in `Payment`, we need a boolean state `agreeToDonate` to indicate whether a user selected the checkbox on the page.
 
 ```tsx
 const Payment = ({ amount }: { amount: number }) => {
@@ -463,7 +463,7 @@ const Payment = ({ amount }: { amount: number }) => {
 }
 ```
 
-The function`Math.floor` will round the number up so we can get the correct amount when the user selects `agreeToDonate`, and the difference between `rounded-up` value and the original amount will be the `tip`.
+The function `Math.floor` will round the number down so we can get the correct amount when the user selects `agreeToDonate`, and the difference between `rounded-up` value and the original amount will be the `tip`.
 
 And for the view, the JSX will be a `checkbox` plus a short description:
 
@@ -487,7 +487,9 @@ return (
 );
 ```
 
-With these new changes, our code starts handling multiple things again. It’s essential always to stay alert for potential mixing of view and non-view code. If you find any unnecessary mixing, look for ways to split them.
+With these new changes, our code starts handling multiple things again. It’s essential to stay alert for potential mixing of view and non-view code. If you find any unnecessary mixing, look for ways to split them.
+
+Note that it's not a set-in-stone rule. Keep things all together nice and tidy for small and cohesive components, so you don't have to look in multiple places to understand the overall behaviour. Generally, you should be aware to avoid the component file growing too big to comprehend.
 
 ### Extract a hook to the rescue
 
@@ -566,7 +568,7 @@ And the `Payment` component can be simplified a lot - the states are now fully m
 
 You can imagine a hook as a state machine behind a view whenever some change happens in the UI, say, a checkbox change event. The event will be sent to the state machine to generate a new state, and the new state will trigger a re-render.
 
-So the pattern here is that we should move state management away from a component and try to make it a pure function (so it can be easily tested and reused just like these humble utility functions). The React hook was designed to share reusable logic from different components, but I find it beneficial even when there is only one use as it helps you to focus on rendering in a component and keeping state and data in hooks.
+So the pattern here is that we should move state management away from a component and try to make it a presentational function (so it can be easily tested and reused just like these humble utility functions). The React hook was designed to share reusable logic from different components, but I find it beneficial even when there is only one use as it helps you to focus on rendering in a component and keeping state and data in hooks.
 
 As the donation checkbox becomes more independent, we can move it into its own pure function component.
 
