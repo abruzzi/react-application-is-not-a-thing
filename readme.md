@@ -693,11 +693,11 @@ const getCurrencySign = (countryCode: CountryCode) =>
   currencySignMap[countryCode];
 ```
 
-One possible solution for the problem of having branches scattered in different places is to use polymorphism to replace these switch cases or table look-up logic.
+One possible solution for the problem of having branches scattered in different places is to use polymorphism to replace these switch cases or table look-up logic. We can use [Extract Class](https://refactoring.com/catalog/extractClass.html) on those properties and then [Replace Conditional with Polymorphism](https://refactoring.com/catalog/replaceConditionalWithPolymorphism.html).
 
 ### Polymorphism to the rescue
 
-The first thing we can do is examine all the branches and see what they are actually testing. For example, different countries have different currency signs, so `getCurrencySign` can be extracted into a public interface. Also, other countries might have different round-up algorithms.
+The first thing we can do is examine all the variations to see what need to be extracted into a class. For example, different countries have different currency signs, so `getCurrencySign` can be extracted into a public interface. Also ,countries might have different round-up algorithms, thus `getRoundUpAmount` and `getTip` can go to the interface.
 
 ```ts
 export interface PaymentStrategy {
@@ -709,7 +709,7 @@ export interface PaymentStrategy {
 }
 ```
 
-A concrete implementation of the strategy interface would be like following the code snippet: `PaymentStrategyAU`. Note here the interface and classes have nothing to do with the UI directly. This logic can be shared in other places in the application or even moved to backend services (if the backend is written in Node, for example).
+A concrete implementation of the strategy interface would be like following the code snippet: `PaymentStrategyAU`. 
 
 ```ts
 export class PaymentStrategyAU implements PaymentStrategy {
@@ -728,8 +728,9 @@ export class PaymentStrategyAU implements PaymentStrategy {
   }
 }
 ```
+Note here the interface and classes have nothing to do with the UI directly. This logic can be shared in other places in the application or even moved to backend services (if the backend is written in Node, for example).
 
-We could have subclasses for each country, and each has the country specific round-up logic. However, as function is the first-class citizen in JavaScript, we can pass in the round-up algorithm into the strategy implementation to make the code less overhead without subclasses.
+We could have subclasses for each country, and each has the country specific round-up logic. However, as function is first-class citizen in JavaScript, we can pass in the round-up algorithm into the strategy implementation to make the code less overhead without subclasses. And becaues we have only one implementation of the interface, we can use [Inline Class](https://refactoring.com/catalog/inlineClass.html) to reduce the single-implementation-interface.
 
 ```ts
 class PaymentStrategy {
@@ -755,7 +756,7 @@ class PaymentStrategy {
 }
 ```
 
-As illustrated below, we only invoke methods from the abstract interface (the grey lines) in each call site. They do not depend on scattered logic anymore but the single class `PaymentStrategy`. And at runtime, we can easily substitute one instance of `strategy` for another (the red, green and blue square indicates different instances of `PaymentStrategy` class).
+As illustrated below, instead of depend on scattered logic in components and hooks, they now only rely on a single class `PaymentStrategy`. And at runtime, we can easily substitute one instance of `strategy` for another (the red, green and blue square indicates different instances of `PaymentStrategy` class).
 
 ![strategy pattern](images/strategy-pattern.png)
 
@@ -808,9 +809,7 @@ export const Payment = ({
 };
 ```
 
-The prop `strategy` here is defined as `PaymentStrategy` interface, and at runtime, we would pass in an instance of a class that implements that interface. Like, `PaymentStrategyAU` or `PaymentStrategyJP`.
-
-Note that I also extracted a few helper functions for the labels:
+And I then did a bit clean up to extract a few helper functions for generating the labels:
 
 ```tsx
 const formatCheckboxLabel = (
@@ -828,9 +827,9 @@ const formatButtonLabel = (strategy: PaymentStrategy, total: number) =>
   `${strategy.getCurrencySign()}${total}`;
 ```
 
-I hope you have noticed that we’re trying to extract non-view related code either directly or by abstracting new mechanisms into separate places. You can think of it this way: the React view is only one of the consumers of your non-view code.
+I hope you have noticed that we’re trying to directly extract non-view code into separate places or abstract new mechanisms to reform it to be more modular. 
 
-For example, if you would build a new interface - maybe with `vue` or even a command line tool - how much code can you reuse with your current implementation?
+You can think of it this way: the React view is only one of the consumers of your non-view code. For example, if you would build a new interface - maybe with `vue` or even a command line tool - how much code can you reuse with your current implementation?
 
 ### Push the design a bit further: extract a network client
 
@@ -895,7 +894,17 @@ And our class diagram is changed into something like the one below. We have most
 
 ## The benefits of having these layers
 
-The layers bring us clean boundaries and separation of concerns. One of the major benefits of the separation is that, if we have to (even very unlikely in most projects), we can replace the view without changing the underlying models and logic. All because the domain logic is encapsulated in pure JavaScript (or TypeScript) code and isn't aware of the existence of views.
+As demonstrated above, these layers brings us many advantages:
+
+1. Enhanced maintainability: by separating a component into distinct parts, it is easier to locate and fix defects in specific parts of the code. This can save time and reduce the risk of introducing new bugs while making changes.
+
+2. Increased modularity: the layered structure is more modular, which can make it easier to reuse code and build new features. Even in each layer, take views for example, tend to be more composable.
+
+3. Enhanced readability: it's much easier to understand and follow the logic of the code. This can be especially helpful for other developers who are reading and working with the code. That's the core of making changes to the codebase.
+
+4. Improved scalability: with reduced complixity in each individual module, the application is often more scalable, as it is easier to add new features or make changes without affecting the entire system. This can be especially important for large, complex applications that are expected to evolve over time.
+
+5. Migrate to other techstack: if we have to (even very unlikely in most projects), we can replace the view layer without changing the underlying models and logic. All because the domain logic is encapsulated in pure JavaScript (or TypeScript) code and isn't aware of the existence of views.
 
 ## Conclusion
 
